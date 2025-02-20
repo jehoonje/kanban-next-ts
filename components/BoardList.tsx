@@ -87,7 +87,7 @@ export default function BoardList({ boards: initialBoards }: { boards: Board[] }
   };
 
   return (
-    <div className="flex flex-wrap gap-10">
+    <div className="flex flex-wrap mt-6 gap-10">
       {boards.map((board) => {
         const isEditing = editingBoardId === board.id;
         const iconsVisible = showIcons[board.id] || false;
