@@ -48,7 +48,7 @@ export default function CreateBoardPage() {
     setter(value);
 
     if (value.trim().length > 0) {
-      setCountdown(5.0); // 입력 시작하면 3초로 초기화
+      setCountdown(4.0); // 입력 시작하면 3초로 초기화
     } else {
       setCountdown(null); // 입력이 없으면 카운트다운 멈춤
     }
@@ -117,8 +117,22 @@ export default function CreateBoardPage() {
     }
   };
 
+  const handleGoBack = () => {
+    if (step === 1) {
+      router.push("/");
+    } else {
+      setStep((prev) => prev - 1);
+    }
+  };
+
   return (
     <div className="w-full h-full flex flex-col justify-center items-center gap-8">
+      <button
+          onClick={handleGoBack}
+          className="absolute top-2 left-2 bg-transparent text-gray-500 px-2 py-1 text-sm rounded hover:text-gray-900"
+        >
+          Back
+        </button>
       {step === 1 && (
         <div className="flex flex-col items-center gap-4">
           <h2 className="text-xs text-gray-700 font-semibold">
