@@ -11,6 +11,8 @@ import { useKanbanStore, Todo, Column } from "../../../../store/kanbanStore";
 import KanbanColumn from "../../../../components/KanbanColumn";
 import TodoModal from "../../../../components/TodoModal";
 import ColumnModal from "../../../../components/ColumnModal";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 
 export default function KanbanPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -19,27 +21,35 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
   const userName = searchParams.get("user") || "";
 
   const {
-    todos,
+    normalTodos: todos,
     boardName,
     editMode,
     deleteMode,
+    errorMode,
     selectedForDelete,
+    selectedForError,
     setBoardName,
-    setTodos,
-    addTodo,
+    setNormalTodos: setTodos,
+    addNormalTodo: addTodo,
     updateTodo,
     removeTodos,
     toggleEditMode,
     toggleDeleteMode,
+    toggleErrorMode,
     toggleSelectDelete,
+    toggleSelectError,
     clearSelectedDelete,
+    clearSelectedError,
   } = useKanbanStore();
 
   // Todo 관련 상태
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [titleInput, setTitleInput] = useState<string>("");
-  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
+  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([
+    null,
+    null,
+  ]);
   const [descriptionInput, setDescriptionInput] = useState<string>("");
   const [statusInput, setStatusInput] = useState<string>("todo");
 
@@ -51,23 +61,31 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
   const [showNewColumnModal, setShowNewColumnModal] = useState<boolean>(false);
   const [newColTitle, setNewColTitle] = useState<string>("");
   const [newColColor, setNewColColor] = useState<string>("#FFFFFF");
-  const [showColorPickerForNew, setShowColorPickerForNew] = useState<boolean>(false);
+  const [showColorPickerForNew, setShowColorPickerForNew] =
+    useState<boolean>(false);
 
-  const [showEditColumnModal, setShowEditColumnModal] = useState<boolean>(false);
+  const [showEditColumnModal, setShowEditColumnModal] =
+    useState<boolean>(false);
   const [editCol, setEditCol] = useState<Column | null>(null);
   const [editColTitle, setEditColTitle] = useState<string>("");
   const [editColColor, setEditColColor] = useState<string>("#FFFFFF");
-  const [showColorPickerForEdit, setShowColorPickerForEdit] = useState<boolean>(false);
-
-  // User list state
-  const [showUserList, setShowUserList] = useState<boolean>(false);
-  const [boardUsers, setBoardUsers] = useState<{ id: number; name: string }[]>([]);
+  const [showColorPickerForEdit, setShowColorPickerForEdit] =
+    useState<boolean>(false);
 
   useEffect(() => {
     fetchBoardName();
     fetchTodos();
     fetchColumns();
   }, [boardId]);
+
+  // Error Mode: Todo를 에러룸으로 보내기 위한 모드
+  const [errorModeActive, setErrorModeActive] = useState<boolean>(false);
+
+  // User list
+  const [showUserList, setShowUserList] = useState<boolean>(false);
+  const [boardUsers, setBoardUsers] = useState<{ id: number; name: string }[]>(
+    []
+  );
 
   async function fetchBoardName() {
     const { data, error } = await supabase
@@ -219,6 +237,9 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
       toggleDeleteMode(false);
       return;
     }
+    if (errorMode === true) {
+      toggleErrorMode(false);
+    }
     const { error } = await supabase
       .from("todos")
       .delete()
@@ -231,6 +252,31 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
     clearSelectedDelete();
     toggleDeleteMode(false);
   }
+
+  // Error mode: 선택된 Todo를 error room으로 보냄 (is_error = true)
+  async function handleErrorTodos() {
+    if (selectedForError.length === 0) {
+      toggleErrorMode(false);
+      return;
+    }
+    const { error } = await supabase
+      .from("todos")
+      .update({ is_error: true })
+      .in("id", selectedForError);
+    if (error) {
+      console.error(error);
+      return;
+    }
+    // 로컬 상태에서도 제거
+    removeTodos(selectedForError);
+    clearSelectedError();
+    toggleErrorMode(false);
+  }
+
+  // Confirm Delete 로직: 선택된 Todo들 삭제 후, error room으로 이동
+  const confirmMoveToErrorRoom = () => {
+    handleErrorTodos();
+  };
 
   async function handleAddColumn() {
     if (!newColTitle) return;
@@ -279,7 +325,9 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
     } else {
       setColumns((prev) =>
         prev.map((col) =>
-          col.id === editCol.id ? { ...col, title: editColTitle, color: editColColor } : col
+          col.id === editCol.id
+            ? { ...col, title: editColTitle, color: editColColor }
+            : col
         )
       );
     }
@@ -288,6 +336,8 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
   }
 
   async function removeColumn(colId: number) {
+    const isConfirmed = window.confirm("삭제하시겠습니까?");
+    if (!isConfirmed) return;
     const { error } = await supabase
       .from("kanban_columns")
       .delete()
@@ -322,233 +372,301 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
     setShowUserList(false);
   };
 
-  const editIconStyle = editMode ? "bg-[#28272B]" : "bg-[#1B1A1D]";
-  const deleteIconStyle = deleteMode ? "bg-[#28272B]" : "bg-[#1B1A1D]";
-
-  const overlayVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1 },
-    exit: { opacity: 0 },
+  // 아이콘(입장, 수정, 삭제) 모션 설정
+  const userVariants = {
+    initial: { scale: 0, opacity: 0 },
+    animate: { scale: 1, opacity: 1 },
+    exit: { scale: 0, opacity: 0 },
   };
 
+  const editIconStyle = editMode ? "bg-[#9593a0]" : "bg-[#1B1A1D]";
+  const deleteIconStyle = deleteMode ? "bg-[#9593a0]" : "bg-[#1B1A1D]";
+
+  // react-dnd: 컬럼 내 순서 이동
+  function moveTodo(dragIndex: number, hoverIndex: number, todo: Todo) {
+    const columnTodos = todos.filter((t) => t.status === todo.status);
+    const updated = Array.from(columnTodos);
+    const [removed] = updated.splice(dragIndex, 1);
+    updated.splice(hoverIndex, 0, removed);
+    const otherTodos = todos.filter((t) => t.status !== todo.status);
+    setTodos([...otherTodos, ...updated]);
+    // DB 업데이트 추가 가능 (order 필드 등)
+  }
+
+  // react-dnd : 컬럼간 이동
+  async function handleDropTodo(todo: Todo, newStatus: string) {
+    if (todo.status !== newStatus) {
+      updateTodo(todo.id, { status: newStatus });
+      // DB 업데이트: Todo의 status 업데이트
+      const { error } = await supabase
+        .from("todos")
+        .update({ status: newStatus })
+        .eq("id", todo.id);
+      if (error) {
+        console.error(error);
+      }
+    }
+  }
+
   return (
-    <div
-      className="w-full min-h-screen bg-cover bg-center text-white"
-      style={{ backgroundImage: "url('/images/background.webp')" }}
-    >
-      {/* 상단 바 */}
-      <div className="flex flex-col items-start ml-[1.1rem] py-2 bg-transparent">
-        <h1 className="text-[2.5rem] py-3 font-bold mr-6">
-          test {boardName ? boardName : ""}
-        </h1>
-        <div className="flex items-center gap-2 w-full">
-          <button
-            onClick={() => router.push("/")}
-            className="text-md font-bold px-14 py-0.5 bg-[#1B1A1D] text-white rounded mr-2 hover:bg-[#28272B] shadow-lg"
-          >
-            Home
-          </button>
-          <button
-            onClick={() => alert("Error room은 아직 구현되지 않았습니다.")}
-            className="text-md font-bold px-10 py-0.5 bg-[#1B1A1D] text-white rounded mr-2 hover:bg-[#28272B] shadow-lg"
-          >
-            Error room
-          </button>
-          <button
-            onClick={toggleUserList}
-            className="text-md font-bold px-10 py-0.5 bg-[#1B1A1D] text-white rounded mr-2 hover:bg-[#28272B] shadow-lg"
-          >
-            Switch User
-          </button>
-          {showUserList && (
-            <AnimatePresence>
-              <motion.div
-                className="absolute bottom-full left-1/3 bg-black/20 rounded shadow-lg flex gap-2"
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                variants={overlayVariants}
-                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+    <DndProvider backend={HTML5Backend}>
+      <div className="w-full min-h-screen bg-cover bg-center text-white">
+        {/* 상단 바 */}
+        <div className="flex flex-col items-start ml-[1.1rem] py-2 bg-transparent">
+          <h1 className="text-[2.5rem] py-3 font-bold mr-6">
+            test {boardName ? boardName : ""}
+          </h1>
+          <div className="flex items-center gap-2 w-full">
+            <button
+              onClick={() => router.push("/")}
+              className="text-md font-bold px-14 py-0.5 bg-[#1B1A1D] text-white rounded mr-2 hover:bg-[#28272B] shadow-lg"
+            >
+              Home
+            </button>
+            <button
+              onClick={() =>
+                router.push(`/board/${boardId}/error?user=${userName}`)
+              }
+              className="text-md font-bold px-10 py-0.5 bg-[#1B1A1D] text-white rounded mr-2 hover:bg-[#28272B] shadow-lg"
+            >
+              Error Room
+            </button>
+            <button
+              onClick={toggleUserList}
+              className="text-md font-bold px-10 py-0.5 bg-[#1B1A1D] text-white rounded mr-2 hover:bg-[#28272B] shadow-lg"
+            >
+              Switch User
+            </button>
+            {showUserList && (
+              <AnimatePresence>
+                <motion.div
+                  className="relative"
+                  key="icons"
+                  variants={userVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                >
+                  <div className="relative bg-black/20 rounded shadow-lg flex gap-2">
+                    {boardUsers.map((u) => (
+                      <button
+                        key={u.id}
+                        onClick={() => switchUser(u.name)}
+                        className="px-2 bg-gray-200 text-black rounded"
+                      >
+                        {u.name}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            )}
+            <div className="relative flex items-center gap-2 ml-auto">
+              <button
+                onClick={() => {
+                  if (!editMode) {
+                    toggleDeleteMode(false);
+                    toggleErrorMode(false);
+                  }
+                  if (editMode) setEditingTodo(null);
+                  toggleEditMode();
+                }}
+                className={classNames(
+                  "text-sm px-3 py-1 bg-[#1B1A1D] hover:bg-[#28272B] rounded transition-colors",
+                  editIconStyle
+                )}
               >
-                {boardUsers.map((u) => (
-                  <button
-                    key={u.id}
-                    onClick={() => switchUser(u.name)}
-                    className="px-2 py-1 bg-gray-200 text-black rounded"
-                  >
-                    {u.name}
-                  </button>
-                ))}
-              </motion.div>
-            </AnimatePresence>
-          )}
-          <div className="flex items-center gap-2 ml-auto">
-            <button
-              onClick={() => {
-                if (editMode) setEditingTodo(null);
-                toggleEditMode();
-              }}
-              className={classNames(
-                "text-sm px-3 py-1 bg-[#1B1A1D] hover:bg-[#28272B] rounded transition-colors",
-                editIconStyle
-              )}
-            >
-              ✏️
-            </button>
-            <button
-              onClick={() => {
-                if (deleteMode) {
-                  clearSelectedDelete();
-                }
-                toggleDeleteMode();
-              }}
-              className={classNames(
-                "text-sm px-3 py-1 bg-[#1B1A1D] hover:bg-[#28272B] rounded transition-colors",
-                deleteIconStyle
-              )}
-            >
-              🗑️
-            </button>
-            <button className="text-sm px-3 py-1 bg-[#1B1A1D] hover:bg-[#28272B] rounded">
-              ⚠️
-            </button>
-            <button
-              onClick={() => setColumnEditMode(!columnEditMode)}
-              className="text-sm px-3 py-1 mr-[1.1rem] bg-[#1B1A1D] hover:bg-[#28272B] text-white rounded"
-            >
-              {columnEditMode ? "Done Columns" : "Edit Columns"}
-            </button>
-            {columnEditMode && (
+                ✏️
+              </button>
+              <button
+                onClick={() => {
+                  if (deleteMode) {
+                    clearSelectedDelete();
+                  }
+                  toggleDeleteMode();
+                  if (errorMode || editMode) {
+                    toggleErrorMode(false); 
+                    toggleEditMode(false);
+                  }
+                }}
+                className={classNames(
+                  "text-sm px-3 py-1 bg-[#1B1A1D] hover:bg-[#28272B] rounded transition-colors",
+                  deleteIconStyle
+                )}
+              >
+                🗑️
+              </button>
+              <button
+                onClick={() => {
+                  if (errorMode) {
+                    clearSelectedError(); // 삭제 모드가 활성화된 경우 비활성화
+                  }
+                  toggleErrorMode(); 
+                  if (deleteMode || editMode) {
+                    toggleDeleteMode(false);
+                    toggleEditMode(false);
+                  }
+                }}
+                className={classNames(
+                  "text-sm px-3 py-1 bg-[#1B1A1D] hover:bg-[#28272B] rounded transition-colors",
+                  errorMode ? "bg-[#9593a0]" : "bg-[#1B1A1D]"
+                )}
+              >
+                ⚠️
+              </button>
+              <button
+                onClick={() => setColumnEditMode(!columnEditMode)}
+                className="text-sm px-3 py-1 bg-[#1B1A1D] hover:bg-[#28272B] text-white rounded"
+              >
+                {columnEditMode ? "Done Columns" : "Edit Columns"}
+              </button>
               <button
                 onClick={() => setShowNewColumnModal(true)}
-                className="absolute bottom-full right-0 mr-[1.1rem] text-sm px-3 py-1 bg-[#1B1A1D] hover:bg-[#28272B] text-white rounded"
+                className="relative mr-[1.1rem] text-sm px-3 py-1 bg-[#1B1A1D] hover:bg-[#28272B] text-white rounded"
               >
                 New Kanban
               </button>
-            )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {deleteMode && (
-        <div className="absolute right-0 bottom-full rounded text-white px-8 bg-[#1B1A1D]">
-          <button onClick={handleDeleteTodos} className="text-lg">
-            Confirm Delete
-          </button>
-        </div>
-      )}
+        {/* 삭제모드 설정 */}
+        {deleteMode && (
+          <div className="absolute right-0 mr-[1.1rem] bottom-full rounded text-white px-8 bg-[#1B1A1D]">
+            <button onClick={handleDeleteTodos} className="text-lg">
+              Confirm Delete
+            </button>
+          </div>
+        )}
 
-      {/* 메인 칼럼 영역 */}
-      <div className="flex justify-center gap-4 px-4 pt-2 py-6">
-        {columns.map((col) => (
-          <KanbanColumn
-            key={col.id}
-            title={col.title}
-            status={col.status}
-            color={col.color}
-            todos={todos.filter((t) => t.status === col.status)}
-            editMode={editMode}
-            deleteMode={deleteMode}
-            selectedForDelete={selectedForDelete}
-            onClickTodo={(todo) => {
-              if (deleteMode) {
-                toggleSelectDelete(todo.id);
-              } else if (editMode) {
-                setEditingTodo(todo);
-                setTitleInput(todo.title);
+        {/* 에러모드 설정 */}
+        {errorMode && (
+          <div className="absolute right-0 mr-[1.1rem] bottom-full rounded text-white px-8 bg-[#1B1A1D]">
+            <button onClick={confirmMoveToErrorRoom} className="text-lg">
+              Confirm Error
+            </button>
+          </div>
+        )}
+
+        {/* 메인 칼럼 영역 */}
+        <div className="flex justify-center gap-4 px-4 pt-2 py-6">
+          {columns.map((col) => (
+            <KanbanColumn
+              key={col.id}
+              title={col.title}
+              status={col.status}
+              color={col.color}
+              todos={todos.filter((t) => t.status === col.status)}
+              editMode={editMode}
+              deleteMode={deleteMode}
+              errorMode={errorMode}
+              selectedForDelete={selectedForDelete}
+              selectedForError={selectedForError}
+              onClickTodo={(todo) => {
+                if (deleteMode) {
+                  toggleSelectDelete(todo.id);
+                } else if (editMode) {
+                  setEditingTodo(todo);
+                  setTitleInput(todo.title);
+                  setDateRange([null, null]);
+                  setDescriptionInput(todo.description);
+                  setStatusInput(todo.status);
+                } else if (errorMode) {
+                  toggleSelectError(todo.id); // 클릭 시 todo 선택
+                }
+              }}
+              onAddTodo={() => {
+                setStatusInput(col.status);
                 setDateRange([null, null]);
-                setDescriptionInput(todo.description);
-                setStatusInput(todo.status);
-              }
-            }}
-            onAddTodo={() => {
-              setStatusInput(col.status);
-              setDateRange([null, null]);
-              setDescriptionInput("");
-              setShowAddModal(true);
-            }}
-            columnEditMode={columnEditMode}
-            onRemoveColumn={() => removeColumn(col.id)}
-            onEditColumn={() => {
-              setEditCol(col);
-              setEditColTitle(col.title);
-              setEditColColor(col.color);
-              setShowEditColumnModal(true);
-            }}
-          />
-        ))}
+                setDescriptionInput("");
+                setShowAddModal(true);
+              }}
+              moveTodo={moveTodo}
+              onDropTodo={handleDropTodo}
+              columnEditMode={columnEditMode}
+              onRemoveColumn={() => removeColumn(col.id)}
+              onEditColumn={() => {
+                setEditCol(col);
+                setEditColTitle(col.title);
+                setEditColColor(col.color);
+                setShowEditColumnModal(true);
+              }}
+            />
+          ))}
+        </div>
+
+        {/* ── Add Todo Modal ── */}
+        <AnimatePresence>
+          {showAddModal && (
+            <TodoModal
+              mode="add"
+              titleInput={titleInput}
+              setTitleInput={setTitleInput}
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              descriptionInput={descriptionInput}
+              setDescriptionInput={setDescriptionInput}
+              onCancel={() => setShowAddModal(false)}
+              onSubmit={handleAddTodo}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* ── Edit Todo Modal ── */}
+        <AnimatePresence>
+          {editMode && editingTodo && (
+            <TodoModal
+              mode="edit"
+              titleInput={titleInput}
+              setTitleInput={setTitleInput}
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              descriptionInput={descriptionInput}
+              setDescriptionInput={setDescriptionInput}
+              onCancel={() => {
+                setEditingTodo(null);
+                toggleEditMode(false);
+              }}
+              onSubmit={handleUpdateTodo}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* ── New Column Modal ── */}
+        <AnimatePresence>
+          {showNewColumnModal && (
+            <ColumnModal
+              mode="add"
+              titleInput={newColTitle}
+              setTitleInput={setNewColTitle}
+              colorInput={newColColor}
+              setColorInput={setNewColColor}
+              showColorPicker={showColorPickerForNew}
+              setShowColorPicker={setShowColorPickerForNew}
+              onCancel={() => setShowNewColumnModal(false)}
+              onSubmit={handleAddColumn}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* ── Edit Column Modal ── */}
+        <AnimatePresence>
+          {showEditColumnModal && (
+            <ColumnModal
+              mode="edit"
+              titleInput={editColTitle}
+              setTitleInput={setEditColTitle}
+              colorInput={editColColor}
+              setColorInput={setEditColColor}
+              showColorPicker={showColorPickerForEdit}
+              setShowColorPicker={setShowColorPickerForEdit}
+              onCancel={() => setShowEditColumnModal(false)}
+              onSubmit={handleEditColumn}
+            />
+          )}
+        </AnimatePresence>
       </div>
-
-      {/* ── Add Todo Modal ── */}
-      <AnimatePresence>
-        {showAddModal && (
-          <TodoModal
-            mode="add"
-            titleInput={titleInput}
-            setTitleInput={setTitleInput}
-            dateRange={dateRange}
-            setDateRange={setDateRange}
-            descriptionInput={descriptionInput}
-            setDescriptionInput={setDescriptionInput}
-            onCancel={() => setShowAddModal(false)}
-            onSubmit={handleAddTodo}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* ── Edit Todo Modal ── */}
-      <AnimatePresence>
-        {editMode && editingTodo && (
-          <TodoModal
-            mode="edit"
-            titleInput={titleInput}
-            setTitleInput={setTitleInput}
-            dateRange={dateRange}
-            setDateRange={setDateRange}
-            descriptionInput={descriptionInput}
-            setDescriptionInput={setDescriptionInput}
-            onCancel={() => {
-              setEditingTodo(null);
-              toggleEditMode(false);
-            }}
-            onSubmit={handleUpdateTodo}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* ── New Column Modal ── */}
-      <AnimatePresence>
-        {showNewColumnModal && (
-          <ColumnModal
-            mode="add"
-            titleInput={newColTitle}
-            setTitleInput={setNewColTitle}
-            colorInput={newColColor}
-            setColorInput={setNewColColor}
-            showColorPicker={showColorPickerForNew}
-            setShowColorPicker={setShowColorPickerForNew}
-            onCancel={() => setShowNewColumnModal(false)}
-            onSubmit={handleAddColumn}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* ── Edit Column Modal ── */}
-      <AnimatePresence>
-        {showEditColumnModal && (
-          <ColumnModal
-            mode="edit"
-            titleInput={editColTitle}
-            setTitleInput={setEditColTitle}
-            colorInput={editColColor}
-            setColorInput={setEditColColor}
-            showColorPicker={showColorPickerForEdit}
-            setShowColorPicker={setShowColorPickerForEdit}
-            onCancel={() => setShowEditColumnModal(false)}
-            onSubmit={handleEditColumn}
-          />
-        )}
-      </AnimatePresence>
-    </div>
+    </DndProvider>
   );
 }

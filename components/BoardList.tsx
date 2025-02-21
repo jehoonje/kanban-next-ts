@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase"; // supabase 직접 import
 import { AnimatePresence, motion } from "framer-motion";
+import { useStore } from "../store/useStore"
 
 interface Board {
   id: number;
@@ -13,13 +14,19 @@ interface Board {
 export default function BoardList({ boards: initialBoards }: { boards: Board[] }) {
   // 보드 목록을 로컬 상태로 관리 (수정/삭제 후 반영)
   const [boards, setBoards] = useState<Board[]>(initialBoards);
-
+  
   // 아이콘 버튼 표시 여부를 보관. board.id -> boolean
   const [showIcons, setShowIcons] = useState<Record<number, boolean>>({});
 
   // 수정 중인 보드 (board.id), 수정용 입력 값
   const [editingBoardId, setEditingBoardId] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState("");
+  
+  const { fetchBoards } = useStore();
+
+  useEffect(() => {
+    fetchBoards(); // 페이지가 로드될 때 보드 목록을 가져옴
+  }, []);
 
   // 0% 버튼 클릭 시 아이콘 표시/숨김 토글
   const toggleIcons = (boardId: number) => {

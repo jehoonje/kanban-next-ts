@@ -1,7 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { ReactNode }  from "react";
 import classNames from "classnames";
+import { useDrop } from "react-dnd";
+import DraggableTodo from "./DraggableTodo";
 import { Todo, Column } from "../store/kanbanStore";
 
 interface KanbanColumnProps {
@@ -11,12 +13,17 @@ interface KanbanColumnProps {
   todos: Todo[];
   editMode: boolean;
   deleteMode: boolean;
+  errorMode: boolean;
   selectedForDelete: number[];
+  selectedForError: number[];
   onClickTodo: (todo: Todo) => void;
   onAddTodo: () => void;
+  moveTodo: (dragIndex: number, hoverIndex: number, todo: Todo) => void;
+  onDropTodo: (todo: Todo, newStatus: string) => void;
   columnEditMode: boolean;
   onRemoveColumn: () => void;
   onEditColumn: () => void;
+  children?: ReactNode;  
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -26,15 +33,41 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
   todos,
   editMode,
   deleteMode,
+  errorMode,
   selectedForDelete,
+  selectedForError,
   onClickTodo,
   onAddTodo,
+  moveTodo,
+  onDropTodo,
   columnEditMode,
   onRemoveColumn,
   onEditColumn,
+  children,
 }) => {
+  const [{ isOver }, drop] = useDrop({
+    accept: "TODO",
+    drop: (item: { index: number; todo: Todo }) => {
+      if (item.todo.status !== status) {
+        onDropTodo(item.todo, status);
+      }
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  });
+
+  // 필터링하여 is_error가 true인 항목은 렌더링하지 않음
+  const filteredTodos = todos.filter((todo) => !todo.is_error);
+
   return (
-    <div className="w-4/5 bg-[#1B1A1D] pb-4 rounded p-2 flex flex-col">
+    <div
+      ref={(node) => { drop(node); }}
+      className={classNames(
+        "w-4/5 bg-[#1B1A1D] pb-4 rounded p-2 flex flex-col",
+        { "filter brightness-110": isOver }
+      )}
+    >
       <div className="flex items-center mb-2">
         <button
           onClick={onAddTodo}
@@ -42,65 +75,50 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
         >
           Add
         </button>
-        {/* 왼쪽: 수정 버튼 (컬럼 편집 모드 시) */}
         <div className="w-1/3 text-left">
           {columnEditMode && (
             <button
               onClick={onEditColumn}
-              className="text-xs px-2 py-1 bg-green-500 text-white rounded mr-1"
+              className="text-xs px-2 py-1 bg-green-900 text-white rounded mr-1"
             >
               Edit
             </button>
           )}
         </div>
-        {/* 중앙: 칼럼 타이틀 */}
         <div className="w-1/3 text-center">
           <h2
-            className="font-semibold text-sm px-4 py-1 bg-[#28272B] rounded inline-block truncate whitespace-nowrap"
+            className="font-semibold text-sm mr-4 px-4 py-1 bg-[#28272B] rounded inline-block truncate whitespace-nowrap"
             style={{ color }}
           >
             {title}
           </h2>
         </div>
-        {/* 오른쪽: 삭제 버튼 */}
         <div className="w-1/3 text-right">
           {columnEditMode && (
             <button
               onClick={onRemoveColumn}
-              className="text-xs px-2 py-1 bg-red-500 text-white rounded"
+              className="text-xs px-2 py-1 bg-red-900 text-white rounded"
             >
               X
             </button>
           )}
         </div>
       </div>
-      {/* Todo 리스트 */}
       <div className="max-h-96 overflow-y-auto flex flex-col gap-2">
-        {todos.map((todo) => {
-          const isSelected = selectedForDelete.includes(todo.id);
-          return (
-            <div
-              key={todo.id}
-              onClick={() => onClickTodo(todo)}
-              className={classNames(
-                "bg-[#28272B] rounded p-2 text-sm cursor-pointer transition-colors",
-                {
-                  "bg-gray-200 text-black": deleteMode && isSelected,
-                  "hover:bg-gray-600": !deleteMode,
-                }
-              )}
-            >
-              <p className="font-bold">{todo.title}</p>
-              {todo.date && (
-                <p className="text-xs mt-1 text-gray-200">{todo.date}</p>
-              )}
-              {todo.description && (
-                <p className="text-xs mt-1 text-gray-300">{todo.description}</p>
-              )}
-              <p className="text-xs text-gray-400">{todo.user_name}</p>
-            </div>
-          );
-        })}
+        {filteredTodos.map((todo, index) => (
+          <DraggableTodo
+            key={todo.id}
+            todo={todo}
+            index={index}
+            moveTodo={moveTodo}
+            onClick={onClickTodo}
+            deleteMode={deleteMode}
+            isSelected={selectedForDelete.includes(todo.id)}
+            errorMode={errorMode}
+            errorSelected={selectedForError.includes(todo.id)}
+            editMode={editMode}
+          />
+        ))}
       </div>
     </div>
   );
