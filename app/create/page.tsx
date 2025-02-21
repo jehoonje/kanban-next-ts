@@ -8,7 +8,7 @@ import { useStore } from "../../store/useStore";
 
 export default function CreateBoardPage() {
   const router = useRouter();
-  const { addBoard } = useStore();
+  const { addBoard, setBoards } = useStore();
 
   const [step, setStep] = useState(1);
   const [countdown, setCountdown] = useState<number | null>(null); // 초기 상태: null (카운트다운 없음)
@@ -104,8 +104,22 @@ export default function CreateBoardPage() {
         console.error("User 생성 오류:", userError);
       }
 
+      // 보드 리스트를 새로 불러오기
+      fetchBoards();
+
       router.push("/");
     });
+  };
+
+  const fetchBoards = async () => {
+    const { data, error } = await supabase.from("boards").select("*");
+  
+    if (error) {
+      console.error("보드 목록을 불러오는 중 오류가 발생했습니다.", error);
+      return;
+    }
+  
+    setBoards(data);
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -140,7 +154,7 @@ export default function CreateBoardPage() {
           </h2>
           <form onSubmit={handleSubmit} className="flex">
             <input
-              className="border px-10 p-2 rounded-md shadow-md"
+              className="bg-[#29282D] text-white px-10 p-2 rounded-md shadow-md"
               placeholder="Title"
               type="text"
               value={boardName}
@@ -158,7 +172,7 @@ export default function CreateBoardPage() {
           <h2 className="text-xs text-gray-100 font-semibold">사용자 이름을 입력하세요.</h2>
           <form onSubmit={handleSubmit} className="flex gap-2">
             <input
-              className="border px-10 p-2 rounded-md shadow-md"
+              className="text-white bg-[#28272D] px-10 p-2 rounded-md shadow-md"
               placeholder="Your name"
               type="text"
               value={userName}

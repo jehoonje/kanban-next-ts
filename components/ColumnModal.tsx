@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { HexColorPicker } from "react-colorful";
 
 interface ColumnModalProps {
@@ -43,8 +43,7 @@ const ColumnModal: React.FC<ColumnModalProps> = ({
         onClick={onCancel}
       />
       <motion.div
-        className="fixed top-1/2 left-1/2 bg-transparent rounded p-6 text-white w-[90%] max-w-md"
-        style={{ transform: "translate(-50%, -50%)" }}
+        className="fixed top-1/3 left-1/3 bg-[#1B1A1D] backdrop-blur-lg pointer-events-auto rounded-lg p-6 text-white w-[90%] max-w-md shadow-lg"
         initial="hidden"
         animate="visible"
         exit="exit"
@@ -65,7 +64,7 @@ const ColumnModal: React.FC<ColumnModalProps> = ({
             <input
               type="text"
               readOnly
-              className="border border-white px-2 py-1 rounded text-white bg-transparent"
+              className="border cursor-pointer border-white px-2 py-1 rounded text-white bg-transparent"
               value={colorInput}
               onClick={() => setShowColorPicker(!showColorPicker)}
             />
@@ -80,18 +79,18 @@ const ColumnModal: React.FC<ColumnModalProps> = ({
           <div className="flex justify-end gap-2">
             <button
               onClick={onCancel}
-              className="px-3 py-1 border rounded hover:bg-gray-600"
+              className="px-3 py-1 text-xs rounded bg-[#28272B] hover:bg-gray-600"
             >
-              취소
+              Cancel
             </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onSubmit();
               }}
-              className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-400"
+              className="px-3 py-1 text-xs bg-blue-900 text-white rounded hover:bg-blue-800"
             >
-              저장
+              Save
             </button>
           </div>
         </div>
