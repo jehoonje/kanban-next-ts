@@ -135,7 +135,7 @@ export default function CreateBoardPage() {
         </button>
       {step === 1 && (
         <div className="flex flex-col items-center gap-4">
-          <h2 className="text-xs text-gray-700 font-semibold">
+          <h2 className="text-xs text-gray-100 font-semibold">
             사용하실 보드의 제목을 입력하세요.
           </h2>
           <form onSubmit={handleSubmit} className="flex">
@@ -155,7 +155,7 @@ export default function CreateBoardPage() {
 
       {step === 2 && (
         <div className="flex flex-col items-center gap-4">
-          <h2 className="text-xs text-gray-700 font-semibold">사용자 이름을 입력하세요.</h2>
+          <h2 className="text-xs text-gray-100 font-semibold">사용자 이름을 입력하세요.</h2>
           <form onSubmit={handleSubmit} className="flex gap-2">
             <input
               className="border px-10 p-2 rounded-md shadow-md"

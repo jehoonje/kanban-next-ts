@@ -29,9 +29,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         className={`transition-opacity duration-500 ${
           fade ? "opacity-100" : "opacity-0"
         } w-screen h-screen flex justify-center items-center bg-gray-50`}
+        style={{ backgroundImage: "url('/images/background.webp')" }}
       >
         {/* 4/5 레이아웃, 테두리+둥근모서리+가운데정렬 */}
-        <div className="w-4/5 h-4/5 border border-gray-300 rounded-md flex justify-center items-center relative">
+        <div className="w-4/5 h-4/5 rounded-md flex justify-center items-center relative">
           {children}
         </div>
       </body>

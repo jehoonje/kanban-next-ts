@@ -5,7 +5,6 @@ import { supabase } from "../../../lib/supabase";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 
-// 예: users 테이블에서 가져올 데이터 구조
 interface User {
   id: number;
   board_id: number;
@@ -16,11 +15,9 @@ export default function BoardPage({ params }: { params: { id: string } }) {
   const boardId = params.id;
   const router = useRouter();
 
-  // 유저 목록
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
-  // Add/Delete 모달 상태
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteOverlay, setShowDeleteOverlay] = useState(false);
   const [newUserName, setNewUserName] = useState("");
@@ -34,6 +31,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
       .from("users")
       .select("*")
       .eq("board_id", boardId);
+
     if (!error && data) {
       setUsers(data);
     }
@@ -56,7 +54,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
 
   function toggleDeleteOverlay() {
     setShowDeleteOverlay((prev) => !prev);
-    setSelectedUserId(null); // 초기화
+    setSelectedUserId(null);
   }
 
   async function confirmDelete() {
@@ -73,11 +71,9 @@ export default function BoardPage({ params }: { params: { id: string } }) {
     setShowDeleteOverlay(false);
   }
 
-  // 뒤로가기 추가
   const handleGoBack = () => {
-    router.push("/"); // 메인 페이지로 이동
+    router.push("/");
   };
-
 
   const overlayVariants = {
     hidden: { opacity: 0 },
@@ -86,17 +82,16 @@ export default function BoardPage({ params }: { params: { id: string } }) {
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col justify-center items-center gap-10">
+    <div className="relative text-white w-full h-full flex flex-col justify-center items-center gap-10">
       <button
-          onClick={handleGoBack}
-          className="absolute top-2 left-2 bg-transparent text-gray-500 px-2 py-1 text-sm rounded hover:text-gray-900"
-        >
-          Back
+        onClick={handleGoBack}
+        className="absolute top-2 left-2 bg-transparent text-gray-300 px-2 py-1 text-sm rounded hover:text-gray-100"
+      >
+        Back
       </button>
-      
+
       <h2 className="text-lg font-semibold">Select your name</h2>
 
-      {/* 유저 목록 */}
       <motion.div
         className="flex gap-4"
         layout
@@ -106,16 +101,18 @@ export default function BoardPage({ params }: { params: { id: string } }) {
           <motion.button
             key={user.id}
             layout
-            className={`border px-4 py-2 rounded-md ${
+            className={`border-2 px-4 py-2 hover:bg-gray-100 hover:text-black rounded-md ${
               showDeleteOverlay && selectedUserId === user.id
                 ? "bg-red-300"
                 : ""
             }`}
             onClick={() => {
               if (showDeleteOverlay) {
-                setSelectedUserId(user.id); // 삭제 모드에서는 체크 기능
+                setSelectedUserId(user.id);
               } else {
-                window.location.href = `/board/${boardId}/todo?user=${user.name}`;
+                // 여기서 Kanban 페이지로 이동
+                // user.name을 쿼리로 넘겨서 해당 유저 정보 활용
+                window.location.href = `/board/${boardId}/kanban?user=${user.name}`;
               }
             }}
           >
@@ -124,20 +121,22 @@ export default function BoardPage({ params }: { params: { id: string } }) {
         ))}
       </motion.div>
 
-      {/* Add / Delete 버튼 */}
-      <div className="flex gap-4">
+      <div className="flex text-xs gap-4">
         <button
           onClick={() => setShowAddModal(true)}
-          className="border px-3 py-1 rounded"
+          className="px-3 py-1 rounded bg-gray-300 text-black hover:bg-gray-200"
         >
           Add
         </button>
-        <button onClick={toggleDeleteOverlay} className="border px-3 py-1 rounded">
+        <button
+          onClick={toggleDeleteOverlay}
+          className="px-3 py-1 rounded bg-gray-300 text-black hover:bg-gray-200"
+        >
           Delete
         </button>
       </div>
 
-      {/* =============== Add Modal =============== */}
+      {/* Add Modal */}
       <AnimatePresence>
         {showAddModal && (
           <>
@@ -158,7 +157,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
               exit="exit"
             >
               <h3 className="text-sm text-white font-semibold">
-                추가하실 이름을 작성해주세요. ( 10글자 ) 
+                추가하실 이름을 작성해주세요. ( 10글자 )
               </h3>
               <div className="flex gap-2 items-center">
                 <input
@@ -166,11 +165,11 @@ export default function BoardPage({ params }: { params: { id: string } }) {
                   maxLength={10}
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
-                  className="border px-2 py-1 rounded"
+                  className="border-2 px-2 py-1 rounded"
                 />
                 <button
                   onClick={handleAddUser}
-                  className="border bg-white px-3 py-1 rounded"
+                  className="border-2 bg-white px-3 py-1 rounded"
                 >
                   ✓
                 </button>
@@ -180,11 +179,10 @@ export default function BoardPage({ params }: { params: { id: string } }) {
         )}
       </AnimatePresence>
 
-      {/* =============== Delete Overlay =============== */}
+      {/* Delete Overlay */}
       <AnimatePresence>
         {showDeleteOverlay && (
           <>
-            {/* 오버레이 */}
             <motion.div
               className="fixed top-0 left-0 w-full h-full bg-black/40"
               variants={overlayVariants}
@@ -193,8 +191,6 @@ export default function BoardPage({ params }: { params: { id: string } }) {
               exit="exit"
               onClick={toggleDeleteOverlay}
             />
-
-            {/* 유저 목록 (삭제 모드) */}
             <motion.div
               className="fixed top-1/2 left-1/2 flex flex-col items-center gap-4 bg-transparent backdrop-blur-lg p-6 rounded-md"
               style={{ transform: "translate(-50%, -50%)" }}
@@ -203,14 +199,15 @@ export default function BoardPage({ params }: { params: { id: string } }) {
               animate="visible"
               exit="exit"
             >
-              <h3 className="text-sm text-white font-semibold">삭제 할 이름을 선택해주세요.</h3>
-
+              <h3 className="text-sm text-white font-semibold">
+                삭제 할 이름을 선택해주세요.
+              </h3>
               <motion.div className="flex gap-4">
                 {users.map((user) => (
                   <motion.button
                     key={user.id}
                     layout
-                    className={`border bg-white px-4 py-2 rounded-md ${
+                    className={`border-2 bg-white px-4 py-2 rounded-md ${
                       selectedUserId === user.id ? "bg-gray-200" : ""
                     }`}
                     onClick={() => setSelectedUserId(user.id)}
@@ -220,11 +217,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
                 ))}
               </motion.div>
 
-              {/* 체크버튼 (확정 삭제) */}
-              <button
-                onClick={confirmDelete}
-                className="text-2xl"
-              >
+              <button onClick={confirmDelete} className="text-2xl">
                 ✅
               </button>
             </motion.div>

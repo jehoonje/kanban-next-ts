@@ -66,6 +66,8 @@ export default function BoardList({ boards: initialBoards }: { boards: Board[] }
 
   // 보드 삭제
   const handleDelete = async (boardId: number) => {
+    const isConfirmed = window.confirm("정말로 이 보드를 삭제하시겠습니까?");
+    if (!isConfirmed) return;
     const { error } = await supabase
       .from("boards")
       .delete()
@@ -97,8 +99,8 @@ export default function BoardList({ boards: initialBoards }: { boards: Board[] }
             {/* 0% 박스 (클릭하면 아이콘 pop / 다시 클릭하면 사라짐) */}
             <button
               onClick={() => toggleIcons(board.id)}
-              className="w-16 h-16 border rounded-md flex justify-center items-center
-                         hover:bg-gray-100 transition-colors duration-300
+              className="w-16 h-16 bg-transparent backdrop-blur-lg border-2 rounded-lg text-white flex justify-center items-center
+                         hover:bg-gray-100 hover:text-black transition-colors duration-300
                          text-lg font-semibold"
             >
               0%
@@ -106,7 +108,7 @@ export default function BoardList({ boards: initialBoards }: { boards: Board[] }
 
             {/* 보드 이름 or 인풋 */}
             {!isEditing ? (
-              <div className="text-xs text-gray-800 font-medium">
+              <div className="text-xs text-gray-100 font-medium">
                 {board.name}
               </div>
             ) : (
@@ -143,7 +145,7 @@ export default function BoardList({ boards: initialBoards }: { boards: Board[] }
                   {/* 입장 아이콘 (➡️) */}
                   <Link
                     href={`/board/${board.id}`}
-                    className="border p-1 rounded hover:bg-gray-200"
+                    className="bg-gray-300 p-1 rounded hover:bg-gray-200"
                     title="입장"
                   >
                     ➡️
@@ -153,7 +155,7 @@ export default function BoardList({ boards: initialBoards }: { boards: Board[] }
                   {!isEditing && (
                     <button
                       onClick={() => handleEditClick(board.id, board.name)}
-                      className="border p-1 rounded hover:bg-gray-200"
+                      className="bg-gray-300 p-1 rounded hover:bg-gray-200"
                       title="수정"
                     >
                       ✏️
@@ -163,7 +165,7 @@ export default function BoardList({ boards: initialBoards }: { boards: Board[] }
                   {/* 삭제 아이콘 (🗑️) */}
                   <button
                     onClick={() => handleDelete(board.id)}
-                    className="border p-1 rounded hover:bg-gray-200"
+                    className="bg-gray-300 p-1 rounded hover:bg-gray-200"
                     title="삭제"
                   >
                     🗑️

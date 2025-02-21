@@ -22,7 +22,7 @@ export default function Home({ initialBoards }: { initialBoards: any[] }) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1.2, ease: "easeOut" }}
-        className="absolute text-[18px] pt-24 font-sans font-semibold text-gray-700"
+        className="absolute text-[18px] pt-24 font-sans font-semibold text-gray-200"
       >
         Bridge knowledge and action with effective task management.
       </motion.h1>
@@ -36,7 +36,7 @@ export default function Home({ initialBoards }: { initialBoards: any[] }) {
         <BoardList boards={boards} />
         <motion.button
           onClick={goToCreateBoard}
-          className="bg-transparent border text-black w-16 h-16 rounded flex justify-center items-center text-3xl hover:bg-gray-100 transition duration-300"
+          className="border-2 rounded-lg text-white w-16 h-16 pb-1 flex justify-center items-center text-3xl hover:bg-gray-100 hover:text-black transition duration-300"
           layout
         >
           +
