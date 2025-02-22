@@ -85,7 +85,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
     <div className="relative text-white w-full h-full flex flex-col justify-center items-center gap-10">
       <button
         onClick={handleGoBack}
-        className="absolute top-2 left-2 bg-transparent text-gray-300 px-2 py-1 text-sm rounded hover:text-gray-100"
+        className="absolute z-50 top-2 left-2 bg-transparent text-gray-300 px-2 py-1 text-sm rounded hover:text-gray-100"
       >
         Back
       </button>
@@ -157,7 +157,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
               exit="exit"
             >
               <h3 className="text-sm text-white font-semibold">
-                추가하실 이름을 작성해주세요. ( 10글자 )
+                추가하실 이름을 작성해주세요. ( 10글자 내 )
               </h3>
               <div className="flex gap-2 items-center">
                 <input
@@ -165,11 +165,11 @@ export default function BoardPage({ params }: { params: { id: string } }) {
                   maxLength={10}
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
-                  className="border-2 px-2 py-1 rounded"
+                  className="bg-[#29282D] px-2 py-1 rounded"
                 />
                 <button
                   onClick={handleAddUser}
-                  className="border-2 bg-white px-3 py-1 rounded"
+                  className="bg-[#29282D] px-3 py-1 rounded"
                 >
                   ✓
                 </button>
@@ -202,12 +202,12 @@ export default function BoardPage({ params }: { params: { id: string } }) {
               <h3 className="text-sm text-white font-semibold">
                 삭제 할 이름을 선택해주세요.
               </h3>
-              <motion.div className="flex gap-4">
+              <motion.div className="flex mt-4 gap-4">
                 {users.map((user) => (
                   <motion.button
                     key={user.id}
                     layout
-                    className={`border-2 bg-white px-4 py-2 rounded-md ${
+                    className={`border-2 bg-white text-black px-4 py-2 rounded-md ${
                       selectedUserId === user.id ? "bg-gray-200" : ""
                     }`}
                     onClick={() => setSelectedUserId(user.id)}

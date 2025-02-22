@@ -1,19 +1,74 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import BoardList from "../components/BoardList";
 import { motion } from "framer-motion";
+import BoardList from "../components/BoardList";
+import { useStore } from "../store/useStore";
+import { useEffect, useState } from "react"; 
+import { useKanbanStore } from "../store/kanbanStore";
+import { supabase } from "../lib/supabase"; 
 
-export default function Home({ initialBoards }: { initialBoards: any[] }) {
+export default function Home() {
   const router = useRouter();
-  const [boards, setBoards] = useState(initialBoards);
+  const { boards, fetchBoards } = useStore(); // fetchBoards 추가
+  const { todoStats } = useKanbanStore(); // Zustand에서 todoStats 가져오기
+  const [loading, setLoading] = useState(true);
 
-  // 이후 필요시 추가 갱신 로직 작성 가능
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchBoards(); // boards 불러오기
+      await fetchTodoStats(); // 통계 가져오기
+      setLoading(false); // 데이터 로드 완료 후 상태 업데이트
+    };
+
+    fetchData();
+  }, [fetchBoards]);
+
+  const fetchTodoStats = async () => {
+    for (const board of boards) {
+      const { data: todos, error: todoError } = await supabase
+        .from("todos")
+        .select("*")
+        .eq("board_id", board.id)
+        .eq("is_error", false);
+
+      if (todoError) {
+        console.error(`Error fetching todos for board ${board.id}:`, todoError);
+        continue;
+      }
+
+      const total = todos.length;
+      const todoCount = todos.filter((todo) => todo.status === "todo").length;
+      useKanbanStore.getState().setTodoStats(board.id, { total, todoCount });
+    }
+  };
 
   const goToCreateBoard = () => {
     router.push("/create");
   };
+
+  if (loading) {
+    return (
+      <div className="w-full h-full flex flex-col justify-start items-center">
+        <motion.h1
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
+          className="absolute text-[18px] pt-24 font-sans font-semibold text-gray-200"
+        >
+          Bridge knowledge and action with effective task management.
+        </motion.h1>
+
+        <motion.div
+          className="flex items-center justify-center gap-10 flex-grow"
+          layout
+          transition={{ type: "spring", stiffness: 100, damping: 15 }}
+        >
+          <div>Loading...</div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full flex flex-col justify-start items-center">

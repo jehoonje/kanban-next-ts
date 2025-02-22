@@ -2,33 +2,51 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase"; // supabase 직접 import
+import { supabase } from "../lib/supabase";
 import { AnimatePresence, motion } from "framer-motion";
-import { useStore } from "../store/useStore"
+import { useStore } from "../store/useStore";
+import { useKanbanStore } from "../store/kanbanStore"; // 추가
 
 interface Board {
   id: number;
   name: string;
 }
 
-export default function BoardList({ boards: initialBoards }: { boards: Board[] }) {
-  // 보드 목록을 로컬 상태로 관리 (수정/삭제 후 반영)
-  const [boards, setBoards] = useState<Board[]>(initialBoards);
-  
-  // 아이콘 버튼 표시 여부를 보관. board.id -> boolean
-  const [showIcons, setShowIcons] = useState<Record<number, boolean>>({});
+interface BoardListProps {
+  boards: Board[];
+}
 
-  // 수정 중인 보드 (board.id), 수정용 입력 값
+export default function BoardList({ boards }: BoardListProps) {
+  const { fetchBoards } = useStore();
+  const { todoStats } = useKanbanStore(); // Zustand에서 todoStats 가져오기
+  const [showIcons, setShowIcons] = useState<Record<number, boolean>>({});
   const [editingBoardId, setEditingBoardId] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState("");
-  
-  const { fetchBoards } = useStore();
 
   useEffect(() => {
-    fetchBoards(); // 페이지가 로드될 때 보드 목록을 가져옴
-  }, []);
+    fetchBoards();
+    fetchTodoStats(); // 초기 통계 가져오기
+  }, [fetchBoards]);
 
-  // 0% 버튼 클릭 시 아이콘 표시/숨김 토글
+  const fetchTodoStats = async () => {
+    for (const board of boards) {
+      const { data: todos, error: todoError } = await supabase
+        .from("todos")
+        .select("*")
+        .eq("board_id", board.id)
+        .eq("is_error", false);
+
+      if (todoError) {
+        console.error(`Error fetching todos for board ${board.id}:`, todoError);
+        continue;
+      }
+
+      const total = todos.length;
+      const todoCount = todos.filter((todo) => todo.status === "todo").length;
+      useKanbanStore.getState().setTodoStats(board.id, { total, todoCount });
+    }
+  };
+
   const toggleIcons = (boardId: number) => {
     setShowIcons((prev) => ({
       ...prev,
@@ -36,13 +54,11 @@ export default function BoardList({ boards: initialBoards }: { boards: Board[] }
     }));
   };
 
-  // 수정 아이콘 클릭 시
   const handleEditClick = (boardId: number, currentName: string) => {
     setEditingBoardId(boardId);
     setEditingValue(currentName);
   };
 
-  // 수정 확인 (체크) 버튼 클릭 시
   const handleConfirmEdit = async (boardId: number) => {
     if (editingValue.length > 10) {
       alert("보드 이름은 최대 10자까지만 가능합니다.");
@@ -63,15 +79,11 @@ export default function BoardList({ boards: initialBoards }: { boards: Board[] }
       return;
     }
 
-    setBoards((prev) =>
-      prev.map((b) => (b.id === boardId ? { ...b, name: editingValue } : b))
-    );
-
+    fetchBoards();
     setEditingBoardId(null);
     setEditingValue("");
   };
 
-  // 보드 삭제
   const handleDelete = async (boardId: number) => {
     const isConfirmed = window.confirm("정말로 이 보드를 삭제하시겠습니까?");
     if (!isConfirmed) return;
@@ -84,11 +96,10 @@ export default function BoardList({ boards: initialBoards }: { boards: Board[] }
       alert("삭제 중 오류가 발생했습니다.");
       return;
     }
-
-    setBoards((prev) => prev.filter((b) => b.id !== boardId));
+    fetchBoards();
+    fetchTodoStats();
   };
 
-  // 아이콘(입장, 수정, 삭제) 모션 설정
   const iconVariants = {
     initial: { scale: 0, opacity: 0 },
     animate: { scale: 1, opacity: 1 },
@@ -100,20 +111,21 @@ export default function BoardList({ boards: initialBoards }: { boards: Board[] }
       {boards.map((board) => {
         const isEditing = editingBoardId === board.id;
         const iconsVisible = showIcons[board.id] || false;
+        const stats = todoStats[board.id] || { total: 0, todoCount: 0 };
+        const completionPercentage =
+          stats.total === 0 ? 0 : Math.round(((stats.total - stats.todoCount) / stats.total) * 100);
 
         return (
           <div key={board.id} className="flex flex-col items-center gap-2 relative">
-            {/* 0% 박스 (클릭하면 아이콘 pop / 다시 클릭하면 사라짐) */}
             <button
               onClick={() => toggleIcons(board.id)}
               className="w-16 h-16 bg-transparent backdrop-blur-lg border-2 rounded-lg text-white flex justify-center items-center
                          hover:bg-gray-100 hover:text-black transition-colors duration-300
                          text-lg font-semibold"
             >
-              0%
+              {completionPercentage}%
             </button>
 
-            {/* 보드 이름 or 인풋 */}
             {!isEditing ? (
               <div className="text-xs text-gray-100 font-medium">
                 {board.name}
@@ -137,11 +149,10 @@ export default function BoardList({ boards: initialBoards }: { boards: Board[] }
               </div>
             )}
 
-            {/* 아이콘 버튼들 (AnimatePresence로 "Pop" 효과) */}
             <AnimatePresence>
               {iconsVisible && (
                 <motion.div
-                  className="absolute top-full mt-2 flex gap-2" // absolute로 위치 고정
+                  className="absolute top-full mt-2 flex gap-2"
                   key="icons"
                   variants={iconVariants}
                   initial="initial"
@@ -149,7 +160,6 @@ export default function BoardList({ boards: initialBoards }: { boards: Board[] }
                   exit="exit"
                   transition={{ type: "spring", stiffness: 200, damping: 20 }}
                 >
-                  {/* 입장 아이콘 (➡️) */}
                   <Link
                     href={`/board/${board.id}`}
                     className="bg-gray-300 p-1 rounded hover:bg-gray-200"
@@ -157,8 +167,6 @@ export default function BoardList({ boards: initialBoards }: { boards: Board[] }
                   >
                     ➡️
                   </Link>
-
-                  {/* 수정 아이콘 (✏️) - 수정모드가 아닐 때만 보이도록 */}
                   {!isEditing && (
                     <button
                       onClick={() => handleEditClick(board.id, board.name)}
@@ -168,8 +176,6 @@ export default function BoardList({ boards: initialBoards }: { boards: Board[] }
                       ✏️
                     </button>
                   )}
-
-                  {/* 삭제 아이콘 (🗑️) */}
                   <button
                     onClick={() => handleDelete(board.id)}
                     className="bg-gray-300 p-1 rounded hover:bg-gray-200"
