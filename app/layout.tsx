@@ -3,6 +3,7 @@
 import "../styles/global.css";
 import { ReactNode, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const [fade, setFade] = useState(true);
@@ -29,11 +30,19 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         className={`transition-opacity duration-500 ${
           fade ? "opacity-100" : "opacity-0"
         } w-screen h-screen flex justify-center items-center bg-gray-50`}
+        style={{ backgroundImage: "url('/images/background.webp')" }}
       >
         {/* 4/5 레이아웃, 테두리+둥근모서리+가운데정렬 */}
-        <div className="w-4/5 h-4/5 border border-gray-300 rounded-md flex justify-center items-center relative">
+        <motion.div
+            key={pathname} // 페이지 변경마다 새로운 key를 적용하여 새로 고침
+            className="w-4/5 h-4/5 rounded-md flex justify-center items-center relative"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+          >
           {children}
-        </div>
+        </motion.div>
       </body>
     </html>
   );
