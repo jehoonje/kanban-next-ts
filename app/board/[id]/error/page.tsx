@@ -2,10 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../../../lib/supabase";
-import { AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
-import classNames from "classnames";
-import { useKanbanStore, Todo } from "../../../../store/kanbanStore"; // Zustand 사용
+import { useKanbanStore, Todo } from "../../../../store/kanbanStore";
 
 export default function ErrorRoomPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -14,12 +13,9 @@ export default function ErrorRoomPage({ params }: { params: { id: string } }) {
   const userName = searchParams.get("user") || "";
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
   const [commentInput, setCommentInput] = useState<string>("");
+  const boardName = useKanbanStore((state) => state.boardName);
 
-  const {
-    errorTodos: todos,
-    boardName,
-    setErrorTodos: setTodos,
-  } = useKanbanStore();
+  const { errorTodos: todos, setErrorTodos: setTodos } = useKanbanStore();
 
   useEffect(() => {
     fetchErrorTodos();
@@ -49,7 +45,6 @@ export default function ErrorRoomPage({ params }: { params: { id: string } }) {
     if (error) {
       console.error(error);
     } else {
-      // Update todos in the store
       setTodos((prevTodos: Todo[]) =>
         prevTodos.map((todo) =>
           todo.id === selectedTodo.id
@@ -57,22 +52,48 @@ export default function ErrorRoomPage({ params }: { params: { id: string } }) {
             : todo
         )
       );
-
-      // Ensure selectedTodo is updated with the comment
       setSelectedTodo((prev) =>
         prev ? { ...prev, comment: commentInput } : null
       );
-
-      // Clear input and close the comment section
       setCommentInput("");
       setSelectedTodo(null);
     }
   }
 
+  async function handleDeleteComment(todoId: number) {
+    const { error } = await supabase
+      .from("todos")
+      .update({ comment: null })
+      .eq("id", todoId);
+
+    if (error) {
+      console.error("Error deleting comment:", error);
+      return;
+    }
+
+    setTodos((prevTodos: Todo[]) =>
+      prevTodos.map((todo) =>
+        todo.id === todoId ? { ...todo, comment: null } : todo
+      )
+    );
+
+    if (selectedTodo?.id === todoId) {
+      setSelectedTodo((prev) => (prev ? { ...prev, comment: null } : null));
+    }
+  }
+
+  // Todo 클릭 시 코멘트 섹션 토글 함수
+  const toggleCommentSection = (todo: Todo) => {
+    if (selectedTodo?.id === todo.id) {
+      setSelectedTodo(null); // 열려 있으면 닫기 (Cancel)
+    } else {
+      setSelectedTodo(todo); // 닫혀 있으면 열기
+    }
+  };
+
   return (
     <div
-      className="w-full min-h-screen bg-cover bg-center text-white"
-      style={{ backgroundImage: "url('/images/background.webp')" }}
+      className="w-4/5 min-h-screen bg-cover bg-center text-white"
     >
       <div className="w-full min-h-screen bg-cover bg-center text-white">
         {/* 상단 바 */}
@@ -94,69 +115,97 @@ export default function ErrorRoomPage({ params }: { params: { id: string } }) {
 
         {/* Error Kanban Column */}
         <div className="flex flex-col px-4 pt-2 py-6 gap-6">
-          {/* Left 50%: Error Todo List and Comment Section */}
-          <div className="overflow-y-auto max-h-[calc(100vh-150px)]"> {/* Max height and scroll */}
+          <div className="overflow-y-auto max-h-[calc(100vh-150px)]">
             {todos
               .filter((todo) => todo.is_error)
               .slice()
               .reverse()
               .map((todo) => (
                 <div key={todo.id} className="flex flex-col mb-4">
-                  {/* Error Todo Item */}
+                  {/* Todo 아이템 */}
                   <div
-                    onClick={() => setSelectedTodo(todo)}
-                    className={classNames(
-                      "p-4 bg-[#1B1A1D] rounded-t-lg cursor-pointer",
-                      {
-                        "bg-[#3A3A3A]": selectedTodo?.id === todo.id, // 선택된 todo 색상
-                        "bg-[#1B1A1D]": todo.comment,
-                        "bg-[#28272D]": !todo.comment,
-                        "hover:bg-[#28272D]": todo.comment,
-                      }
-                    )}
+                    onClick={() => toggleCommentSection(todo)}
+                    className={`p-4 bg-[#1B1A1D] rounded-t-lg cursor-pointer ${
+                      selectedTodo?.id === todo.id
+                        ? "bg-[#3A3A3A]"
+                        : todo.comment
+                        ? "bg-[#1B1A1D] hover:bg-[#28272D]"
+                        : "bg-[#1B1A1D]"
+                    }`}
                   >
                     <h3 className="font-bold">{todo.title}</h3>
                     {todo.date && (
                       <p className="text-sm text-gray-400">{todo.date}</p>
                     )}
                     {todo.description && (
-                      <p className="text-sm text-gray-300">{todo.description}</p>
+                      <p className="text-sm text-gray-300">
+                        {todo.description}
+                      </p>
                     )}
                   </div>
 
-                  {/* Comment Section */}
-                  <div className="w-full p-4 bg-[#1B1A1D] rounded-b-lg">
-                    {selectedTodo?.id === todo.id ? (
-                      <>
-                        <textarea
-                          className="w-full p-2 bg-transparent text-white border border-gray-500 rounded-md"
-                          placeholder="Write a comment..."
-                          value={commentInput}
-                          onChange={(e) => setCommentInput(e.target.value)}
-                        />
-                        <div className="flex justify-end gap-2 mt-4">
-                          <button
-                            onClick={() => setSelectedTodo(null)}
-                            className="px-1 py-0.5 text-xs bg-[#28272B] rounded text-white hover:bg-gray-600"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={handleCommentSubmit}
-                            className="px-1 py-0.5 text-xs bg-[#28272B] text-white rounded"
-                          >
-                            Save
-                          </button>
+                  {/* 코멘트 섹션 애니메이션 */}
+                  <AnimatePresence>
+                    {selectedTodo?.id === todo.id && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }} // 접힌 초기 상태
+                        animate={{ height: "auto", opacity: 1 }} // 펼쳐진 상태
+                        exit={{ height: 0, opacity: 0 }} // 닫히는 상태
+                        transition={{ duration: 0.3 }} // 0.3초 동안 부드럽게 전환
+                        className="overflow-hidden"
+                      >
+                        <div className="w-full p-4 bg-[#1B1A1D] rounded-b-lg">
+                          <textarea
+                            className="w-full p-2 bg-transparent text-white border border-gray-500 rounded-md"
+                            placeholder="Write a comment..."
+                            value={commentInput}
+                            onChange={(e) => setCommentInput(e.target.value)}
+                          />
+                          <div className="flex justify-end gap-2 mt-4">
+                            <button
+                              onClick={() => setSelectedTodo(null)}
+                              className="px-1 py-0.5 text-xs bg-[#28272B] rounded text-white hover:bg-gray-600"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleCommentSubmit}
+                              className="px-1 py-0.5 text-xs bg-[#28272B] text-white rounded"
+                            >
+                              Save
+                            </button>
+                          </div>
                         </div>
-                      </>
-                    ) : (
-                      todo.comment && (
-                        <p className="text-sm text-gray-200">
-                          [ {userName} ] 💬  <br></br>{todo.comment}
-                        </p>
-                      )
+                      </motion.div>
                     )}
-                  </div>
+                  </AnimatePresence>
+
+                  {/* 기존 코멘트 표시 */}
+                  {todo.comment && selectedTodo?.id !== todo.id && (
+                    <div className="w-full p-4 bg-[#1B1A1D] rounded-b-lg">
+                      <div className="flex items-start justify-between">
+                        <p className="text-sm text-gray-200">
+                          [ {userName} ] 💬 <br />
+                          {todo.comment}
+                        </p>
+                        <button
+                          onClick={() => handleDeleteComment(todo.id)}
+                          className="text-sm text-red-500 hover:text-red-700"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 코멘트가 없는 경우 메시지 */}
+                  {!todo.comment && selectedTodo?.id !== todo.id && (
+                    <div className="w-full p-4 bg-[#7F1C1D] rounded-b-lg">
+                      <p className="text-sm text-white">
+                        ⚠️ To-do를 클릭하여 코멘트를 작성해주세요.
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
           </div>

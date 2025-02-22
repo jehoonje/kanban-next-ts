@@ -52,7 +52,7 @@ const TodoModal: React.FC<TodoModalProps> = ({
         variants={overlayVariants}
       >
         <h2 className="text-lg font-semibold mb-4">
-          {mode === "add" ? "새 Todo 추가" : "To-do 수정"}
+          {mode === "add" ? "To-do 내용을 작성해주세요." : "To-do 내용을 수정합니다."}
         </h2>
         <div className="flex flex-col gap-4">
           {/* 제목 입력 */}

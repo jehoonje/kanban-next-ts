@@ -25,7 +25,9 @@ export default function CreateBoardPage() {
     // 사용자가 입력하지 않은 상태에서는 카운트다운 X
     if (!isTyping && countdown !== null) {
       timer = setInterval(() => {
-        setCountdown((prev) => (prev !== null && prev > 0 ? +(prev - 0.1).toFixed(1) : 0));
+        setCountdown((prev) =>
+          prev !== null && prev > 0 ? +(prev - 0.1).toFixed(1) : 0
+        );
       }, 100);
     }
 
@@ -44,7 +46,10 @@ export default function CreateBoardPage() {
     }
   }, [countdown]);
 
-  const handleInputChange = (setter: (value: string) => void, value: string) => {
+  const handleInputChange = (
+    setter: (value: string) => void,
+    value: string
+  ) => {
     setter(value);
 
     if (value.trim().length > 0) {
@@ -94,8 +99,13 @@ export default function CreateBoardPage() {
         return;
       }
 
-      addBoard(boardData);
+      // 보드 추가 후 상태 업데이트
+      addBoard(boardData); // 상태를 업데이트
+      
+      // 상태 업데이트 후, 페이지를 이동
+      router.push(`/`); // 생성된 보드 페이지로 이동
 
+      // 사용자가 추가된 후, 해당 보드를 users 테이블에 추가
       const { error: userError } = await supabase
         .from("users")
         .insert([{ board_id: boardData.id, name: userName }]);
@@ -103,23 +113,7 @@ export default function CreateBoardPage() {
       if (userError) {
         console.error("User 생성 오류:", userError);
       }
-
-      // 보드 리스트를 새로 불러오기
-      fetchBoards();
-
-      router.push("/");
     });
-  };
-
-  const fetchBoards = async () => {
-    const { data, error } = await supabase.from("boards").select("*");
-  
-    if (error) {
-      console.error("보드 목록을 불러오는 중 오류가 발생했습니다.", error);
-      return;
-    }
-  
-    setBoards(data);
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -142,11 +136,11 @@ export default function CreateBoardPage() {
   return (
     <div className="w-full h-full flex flex-col justify-center items-center gap-8">
       <button
-          onClick={handleGoBack}
-          className="absolute top-2 left-2 bg-transparent text-gray-500 px-2 py-1 text-sm rounded hover:text-gray-900"
-        >
-          Back
-        </button>
+        onClick={handleGoBack}
+        className="absolute top-2 left-2 bg-transparent text-gray-500 px-2 py-1 text-sm rounded hover:text-gray-900"
+      >
+        Back
+      </button>
       {step === 1 && (
         <div className="flex flex-col items-center gap-4">
           <h2 className="text-xs text-gray-100 font-semibold">
@@ -169,7 +163,9 @@ export default function CreateBoardPage() {
 
       {step === 2 && (
         <div className="flex flex-col items-center gap-4">
-          <h2 className="text-xs text-gray-100 font-semibold">사용자 이름을 입력하세요.</h2>
+          <h2 className="text-xs text-gray-100 font-semibold">
+            사용자 이름을 입력하세요.
+          </h2>
           <form onSubmit={handleSubmit} className="flex gap-2">
             <input
               className="text-white bg-[#28272D] px-10 p-2 rounded-md shadow-md"

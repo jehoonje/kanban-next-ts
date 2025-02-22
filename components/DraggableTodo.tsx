@@ -74,7 +74,7 @@ const DraggableTodo: React.FC<DraggableTodoProps> = ({
       {todo.description && (
         <p className="text-xs mt-1 text-gray-300">{todo.description}</p>
       )}
-      <p className="text-xs text-gray-400">{todo.user_name}</p>
+      <p className="text-xs text-gray-400 pt-1">{todo.user_name}</p>
     </div>
   );
 };
