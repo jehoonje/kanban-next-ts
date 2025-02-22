@@ -8,7 +8,7 @@ import { useStore } from "../../store/useStore";
 
 export default function CreateBoardPage() {
   const router = useRouter();
-  const { addBoard } = useStore();
+  const { addBoard, setBoards } = useStore();
 
   const [step, setStep] = useState(1);
   const [countdown, setCountdown] = useState<number | null>(null); // 초기 상태: null (카운트다운 없음)
@@ -25,7 +25,9 @@ export default function CreateBoardPage() {
     // 사용자가 입력하지 않은 상태에서는 카운트다운 X
     if (!isTyping && countdown !== null) {
       timer = setInterval(() => {
-        setCountdown((prev) => (prev !== null && prev > 0 ? +(prev - 0.1).toFixed(1) : 0));
+        setCountdown((prev) =>
+          prev !== null && prev > 0 ? +(prev - 0.1).toFixed(1) : 0
+        );
       }, 100);
     }
 
@@ -44,7 +46,10 @@ export default function CreateBoardPage() {
     }
   }, [countdown]);
 
-  const handleInputChange = (setter: (value: string) => void, value: string) => {
+  const handleInputChange = (
+    setter: (value: string) => void,
+    value: string
+  ) => {
     setter(value);
 
     if (value.trim().length > 0) {
@@ -94,8 +99,13 @@ export default function CreateBoardPage() {
         return;
       }
 
-      addBoard(boardData);
+      // 보드 추가 후 상태 업데이트
+      addBoard(boardData); // 상태를 업데이트
+      
+      // 상태 업데이트 후, 페이지를 이동
+      router.push(`/`); // 생성된 보드 페이지로 이동
 
+      // 사용자가 추가된 후, 해당 보드를 users 테이블에 추가
       const { error: userError } = await supabase
         .from("users")
         .insert([{ board_id: boardData.id, name: userName }]);
@@ -103,8 +113,6 @@ export default function CreateBoardPage() {
       if (userError) {
         console.error("User 생성 오류:", userError);
       }
-
-      router.push("/");
     });
   };
 
@@ -128,19 +136,19 @@ export default function CreateBoardPage() {
   return (
     <div className="w-full h-full flex flex-col justify-center items-center gap-8">
       <button
-          onClick={handleGoBack}
-          className="absolute top-2 left-2 bg-transparent text-gray-500 px-2 py-1 text-sm rounded hover:text-gray-900"
-        >
-          Back
-        </button>
+        onClick={handleGoBack}
+        className="absolute top-2 left-2 bg-transparent text-gray-500 px-2 py-1 text-sm rounded hover:text-gray-900"
+      >
+        Back
+      </button>
       {step === 1 && (
         <div className="flex flex-col items-center gap-4">
-          <h2 className="text-xs text-gray-700 font-semibold">
+          <h2 className="text-xs text-gray-100 font-semibold">
             사용하실 보드의 제목을 입력하세요.
           </h2>
           <form onSubmit={handleSubmit} className="flex">
             <input
-              className="border px-10 p-2 rounded-md shadow-md"
+              className="bg-[#29282D] text-white px-10 p-2 rounded-md shadow-md"
               placeholder="Title"
               type="text"
               value={boardName}
@@ -155,10 +163,12 @@ export default function CreateBoardPage() {
 
       {step === 2 && (
         <div className="flex flex-col items-center gap-4">
-          <h2 className="text-xs text-gray-700 font-semibold">사용자 이름을 입력하세요.</h2>
+          <h2 className="text-xs text-gray-100 font-semibold">
+            사용자 이름을 입력하세요.
+          </h2>
           <form onSubmit={handleSubmit} className="flex gap-2">
             <input
-              className="border px-10 p-2 rounded-md shadow-md"
+              className="text-white bg-[#28272D] px-10 p-2 rounded-md shadow-md"
               placeholder="Your name"
               type="text"
               value={userName}
