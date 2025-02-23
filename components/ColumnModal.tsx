@@ -10,7 +10,6 @@ interface ColumnModalProps {
   setTitleInput: (value: string) => void;
   colorInput: string;
   setColorInput: (value: string) => void;
-  showColorPicker: boolean;
   setShowColorPicker: (value: boolean) => void;
   onCancel: () => void;
   onSubmit: () => void;
@@ -23,7 +22,6 @@ const ColumnModal: React.FC<ColumnModalProps> = ({
   setTitleInput,
   colorInput,
   setColorInput,
-  showColorPicker,
   setShowColorPicker,
   onCancel,
   onSubmit,
@@ -36,64 +34,65 @@ const ColumnModal: React.FC<ColumnModalProps> = ({
   return (
     <>
       <motion.div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-        initial="hidden"
-        animate="visible"
-        exit="exit"
-        onClick={onCancel}
-      />
-      <motion.div
-        className="fixed top-1/3 left-1/3 bg-[#1B1A1D] backdrop-blur-lg pointer-events-auto rounded-lg p-6 text-white w-[90%] max-w-md shadow-lg"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center"
         initial="hidden"
         animate="visible"
         exit="exit"
         variants={overlayVariants}
+        onClick={onCancel} // 바깥 영역 클릭 시 닫기
       >
-        <h2 className="text-lg font-semibold mb-4">
-          {mode === "add" ? "새 컬럼 추가" : "컬럼 수정"}
-        </h2>
-        <div className="flex flex-col gap-4">
-          <input
-            type="text"
-            className="border border-white px-2 py-1 rounded text-white bg-transparent"
-            placeholder="컬럼명을 입력하세요"
-            value={titleInput}
-            onChange={(e) => setTitleInput(e.target.value)}
-          />
-          <div className="flex flex-col">
+        <motion.div
+          className="bg-[#1B1A1D] pointer-events-auto rounded-lg p-6 text-white w-[15.5rem] shadow-lg"
+          onClick={(e) => e.stopPropagation()} // 모달 내부 클릭 시 이벤트 버블링 방지
+        >
+          <h2 className="text-lg font-semibold mb-4">
+            {mode === "add" ? "새 컬럼 추가" : "컬럼 수정"}
+          </h2>
+          <div className="flex flex-col gap-4">
+            <input
+              type="text"
+              className="border border-white px-2 py-1 rounded text-white bg-transparent"
+              placeholder="컬럼명을 입력하세요"
+              value={titleInput}
+              onChange={(e) => setTitleInput(e.target.value)}
+            />
+
             <input
               type="text"
               readOnly
               className="border cursor-pointer border-white px-2 py-1 rounded text-white bg-transparent"
               value={colorInput}
-              onClick={() => setShowColorPicker(!showColorPicker)}
             />
-            {showColorPicker && (
+            <div className="flex flex-col gap-2 justify-around">
               <HexColorPicker
                 color={colorInput}
                 onChange={setColorInput}
-                className="mt-2"
+                className="mt-2 relative"
               />
-            )}
+              <div
+                className="w-full mt-2 h-[3rem]"
+                style={{ backgroundColor: colorInput }}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={onCancel}
+                className="px-3 py-1 text-xs rounded bg-[#28272B] hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSubmit();
+                }}
+                className="px-3 py-1 text-xs bg-blue-900 text-white rounded hover:bg-blue-800"
+              >
+                Save
+              </button>
+            </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={onCancel}
-              className="px-3 py-1 text-xs rounded bg-[#28272B] hover:bg-gray-600"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onSubmit();
-              }}
-              className="px-3 py-1 text-xs bg-blue-900 text-white rounded hover:bg-blue-800"
-            >
-              Save
-            </button>
-          </div>
-        </div>
+        </motion.div>
       </motion.div>
     </>
   );
