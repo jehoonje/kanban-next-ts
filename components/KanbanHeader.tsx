@@ -61,7 +61,10 @@ export default function KanbanHeader({
   return (
     <div className="flex flex-col items-start ml-[1.1rem] py-2 bg-transparent">
       <div className="flex flex-row">
-        <h1 className="text-[2.5rem] tracking-tight py-3 font-bold mr-6">
+        <h1
+          className="text-[2.5rem] tracking-tight py-3 font-bold mr-6 cursor-pointer"
+          onClick={() => window.location.reload()}
+        >
           Board - {boardName ? boardName : ""}
         </h1>
       </div>

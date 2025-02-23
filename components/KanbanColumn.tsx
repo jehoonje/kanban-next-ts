@@ -129,7 +129,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
       className={classNames(
         "w-full md:w-80 bg-[#1B1A1D] pb-4 rounded-md flex flex-col transform transition-all duration-300 mx-2",
         {
-          "brightness-110 shadow-2xl": isOverTodo || isOverColumn || isDragging,
+          "brightness-150 shadow-2xl": isOverTodo || isOverColumn || isDragging,
           "shadow-[0px_2px_4px_#141416,0px_4px_4px_#222224]": true,
           "hover:-translate-y-0.5": !isOverTodo && !isOverColumn && !isDragging,
         }

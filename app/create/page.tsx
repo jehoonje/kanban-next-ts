@@ -53,7 +53,7 @@ export default function CreateBoardPage() {
     setter(value);
 
     if (value.trim().length > 0) {
-      setCountdown(4.0); // 입력 시작하면 3초로 초기화
+      setCountdown(3.0); // 입력 시작하면 3초로 초기화
     } else {
       setCountdown(null); // 입력이 없으면 카운트다운 멈춤
     }
@@ -155,7 +155,7 @@ export default function CreateBoardPage() {
               onChange={(e) => handleInputChange(setBoardName, e.target.value)}
             />
           </form>
-          <div className="text-gray-500">
+          <div className="text-gray-500 h-5">
             {countdown !== null ? countdown.toFixed(1) + " sec" : ""}
           </div>
         </div>
@@ -175,7 +175,7 @@ export default function CreateBoardPage() {
               onChange={(e) => handleInputChange(setUserName, e.target.value)}
             />
           </form>
-          <div className="text-gray-500">
+          <div className="text-gray-500 h-5">
             {countdown !== null ? countdown.toFixed(1) + " sec" : ""}
           </div>
         </div>
