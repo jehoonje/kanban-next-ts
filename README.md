@@ -20,6 +20,7 @@ https://jehoontest.vercel.app/
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Zustand-FF4154?style=flat-square&logo=react&logoColor=white" alt="Zustand" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/framer_motion-ffca28?style=flat-square&logo=framer&logoColor=%23ffffff&color=%237178f6 alt="Motion" />
 </p>
 
 </br> </br> 
@@ -31,16 +32,14 @@ https://jehoontest.vercel.app/
 | React                 | 프론트엔드 라이브러리| 18.3.1  | 컴포넌트 기반 UI 구축과 풍부한 생태계를 고려하여 선택.                   |
 | Next.js               | React 프레임워크     | 14.2.23 | 서버 사이드 렌더링과 정적 생성으로 성능 최적화 및 SEO 개선.             |
 | Tailwind CSS          | CSS 프레임워크       | 3.4.17  | 유틸리티 클래스 기반 스타일링으로 빠르고 일관된 디자인 구현.           |
+| TypeScript            | 정적 타입            | 5.7.3   | 코드 안정성과 유지보수성을 높이기 위해 선택.                           |
 | Framer Motion         | 애니메이션 라이브러리| 12.4.7  | React 환경에서 직관적이고 부드러운 모션 애니메이션 적용.               |
 | React DnD             | 드래그 앤 드롭       | 16.0.1  | Kanban 보드의 인터랙티브한 드래그 앤 드롭 기능 구현.                   |
 | Zustand               | 상태 관리 라이브러리 | 5.0.3   | 간결하고 유연한 전역 상태 관리로 컴포넌트 간 데이터 공유 간소화.         |
-| React Query           | 데이터 페칭          | 3.39.3  | 비동기 데이터 관리와 캐싱으로 서버 상태 동기화 효율성 향상.             |
-| Prisma                | ORM                  | 6.4.0   | 타입 안전한 데이터베이스 쿼리와 쉬운 모델 관리.                         |
 | @supabase/supabase-js | 백엔드 서비스        | 2.48.1  | 간편한 인증과 실시간 기능을 제공하는 Supabase와 통합.                    |
 | Zod                   | 스키마 검증          | 3.24.2  | 타입스크립트와의 호환성을 고려한 런타임 데이터 검증.                     |
 | PostCSS               | 스타일 변환 툴       | 8.5.2   | Tailwind CSS와 함께 CSS 최적화 및 변환 작업 지원.                       |
 | Autoprefixer          | CSS 자동 접두어 추가 | 10.4.20 | 브라우저 호환성을 위한 자동 접두어 처리.                               |
-| TypeScript            | 정적 타입            | 5.7.3   | 코드 안정성과 유지보수성을 높이기 위해 선택.                           |
 
 
 
