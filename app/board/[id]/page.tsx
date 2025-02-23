@@ -103,7 +103,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
             layout
             className={`border-2 px-4 py-2 hover:bg-gray-100 hover:text-black rounded-md ${
               showDeleteOverlay && selectedUserId === user.id
-                ? "bg-red-300"
+                ? "bg-red-300 hover:bg-red-300"
                 : ""
             }`}
             onClick={() => {
