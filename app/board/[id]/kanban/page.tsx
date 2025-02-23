@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabase";
 import { AnimatePresence } from "framer-motion";
@@ -38,7 +37,6 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
     toggleSelectError,
     clearSelectedDelete,
     clearSelectedError,
-    setColumns,
   } = useKanbanStore();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -51,7 +49,7 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
   ]);
   const [descriptionInput, setDescriptionInput] = useState<string>("");
   const [statusInput, setStatusInput] = useState<string>("todo");
-  const [columns, setLocalColumns] = useState<Column[]>([]);
+  const [columns, setColumns] = useState<Column[]>([]);
   const [showNewColumnModal, setShowNewColumnModal] = useState<boolean>(false);
   const [newColTitle, setNewColTitle] = useState<string>("");
   const [newColColor, setNewColColor] = useState<string>("#FFFFFF");
@@ -107,7 +105,7 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
       .from("kanban_columns")
       .select("*")
       .eq("board_id", boardId)
-      .order("order", { ascending: true });
+      .order("order", { ascending: true }); // order 기준으로 정렬
 
     if (error) {
       console.error("Error fetching columns:", error);
@@ -117,7 +115,7 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
     if (data && data.length === 0) {
       await createDefaultColumns();
     } else if (data) {
-      setLocalColumns(data);
+      console.log("Fetched columns:", data); // 디버깅용 로그 추가
       setColumns(data);
     }
   }
@@ -140,9 +138,9 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
     }
 
     const defaultColumns = [
-      { title: "To-do", status: "todo", color: "#FFFFFF", order: 0 },
-      { title: "In-Progress", status: "in-progress", color: "#FFFFFF", order: 1 },
-      { title: "Done", status: "done", color: "#FFFFFF", order: 2 },
+      { title: "To-do", status: "todo", color: "#FFFFFF", order: 1 },
+      { title: "In-Progress", status: "in-progress", color: "#FFFFFF", order: 2 },
+      { title: "Done", status: "done", color: "#FFFFFF", order: 3 },
     ];
 
     const { data, error } = await supabase
@@ -164,7 +162,6 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
     }
 
     if (data) {
-      setLocalColumns(data);
       setColumns(data);
     }
   }
@@ -300,6 +297,14 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
     const status = newColTitle.toLowerCase().replace(/\s+/g, "-");
 
     try {
+      const { data: existingColumns, error: fetchError } = await supabase
+        .from("kanban_columns")
+        .select("order")
+        .eq("board_id", boardId)
+        .order("order", { ascending: false })
+        .limit(1);
+      const newOrder = fetchError || !existingColumns ? 1 : existingColumns[0].order + 1;
+
       const { data, error } = await supabase
         .from("kanban_columns")
         .insert([
@@ -308,7 +313,7 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
             title: newColTitle,
             status,
             color: newColColor,
-            order: columns.length,
+            order: newOrder,
           },
         ])
         .select()
@@ -321,7 +326,6 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
       }
 
       if (data) {
-        setLocalColumns((prev) => [...prev, data as Column]);
         setColumns((prev) => [...prev, data as Column]);
       }
 
@@ -343,13 +347,6 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
     if (error) {
       console.error(error);
     } else {
-      setLocalColumns((prev) =>
-        prev.map((col) =>
-          col.id === editCol.id
-            ? { ...col, title: editColTitle, color: editColColor }
-            : col
-        )
-      );
       setColumns((prev) =>
         prev.map((col) =>
           col.id === editCol.id
@@ -372,6 +369,8 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
     const isConfirmed = window.confirm("삭제하시겠습니까?");
     if (!isConfirmed) return;
 
+    console.log("Attempting to delete column with ID:", colId);
+
     const { error } = await supabase
       .from("kanban_columns")
       .delete()
@@ -381,8 +380,8 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
       console.error("Error deleting column:", error.message, error.details);
       alert("컬럼 삭제에 실패했습니다: " + error.message);
     } else {
-      setLocalColumns((prev) => prev.filter((col) => col.id !== colId));
-      setColumns((prev) => prev.filter((col) => col.id !== colId));
+      console.log("Column deleted successfully, updating state...");
+      setColumns(columns.filter((col) => col.id !== colId));
     }
   }
 

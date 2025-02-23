@@ -98,7 +98,7 @@ export default function KanbanHeader({
                 exit="exit"
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
               >
-                <div className="absolute bottom-6 right-2 z-50 bg-black/20 rounded shadow-lg flex gap-2">
+                <div className="absolute text-xs bottom-6 right-2 z-50 bg-black/20 rounded shadow-lg flex gap-2">
                   {boardUsers.map((u) => (
                     <button
                       key={u.id}
