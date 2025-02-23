@@ -531,7 +531,6 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
             setTitleInput={setNewColTitle}
             colorInput={newColColor}
             setColorInput={setNewColColor}
-            showColorPicker={showColorPickerForNew}
             setShowColorPicker={setShowColorPickerForNew}
             onCancel={() => setShowNewColumnModal(false)}
             onSubmit={handleAddColumn}
@@ -547,7 +546,6 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
             setTitleInput={setEditColTitle}
             colorInput={editColColor}
             setColorInput={setEditColColor}
-            showColorPicker={showColorPickerForEdit}
             setShowColorPicker={setShowColorPickerForEdit}
             onCancel={() => setShowEditColumnModal(false)}
             onSubmit={handleEditColumn}
