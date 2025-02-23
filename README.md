@@ -7,7 +7,8 @@ https://jehoontest.vercel.app/
 </br> </br> 
 
 
-자연스럽고 직관적인 사용자 경험을 목표로, Zustand를 활용한 상태 관리와 </br> Next.js, Tailwind CSS를 통한 UI/UX 최적화를 공부하며 제작했습니다.
+자연스럽고 직관적인 사용자 경험을 목표로, Zustand를 활용한 상태 관리와 </br> Next.js, Tailwind CSS를 통한 UI/UX 최적화를 공부하며 제작했습니다. </br>
+프로젝트를 생성, 삭제 하고 프로젝트 내 보드와 To-do들을 생성 및 관리 할 수 있습니다. </br>
 </br> </br> 
 
 ## 주요 기술 스택
