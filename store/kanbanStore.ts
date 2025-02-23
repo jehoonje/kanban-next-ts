@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { supabase } from "../lib/supabase";
 
 export interface Todo {
   id: number;
@@ -18,11 +19,13 @@ export interface Column {
   title: string;
   status: string;
   color: string;
+  order?: number;
 }
 
 interface KanbanState {
   normalTodos: Todo[];
   errorTodos: Todo[];
+  columns: Column[];
   boardName: string;
   editMode: boolean;
   columnEditMode: boolean;
@@ -47,6 +50,8 @@ interface KanbanState {
   clearSelectedDelete: () => void;
   toggleSelectError: (id: number) => void;
   clearSelectedError: () => void;
+  setColumns: (columns: Column[] | ((prevColumns: Column[]) => Column[])) => void;
+  updateColumnOrder: (columnId: number, newIndex: number) => Promise<void>; // 새로운 액션 추가
   setTodoStats: (
     boardId: number,
     stats: { total: number; todoCount: number }
@@ -55,6 +60,7 @@ interface KanbanState {
 
 export const useKanbanStore = create<KanbanState>((set, get) => ({
   normalTodos: [],
+  columns: [],
   errorTodos: [],
   boardName: "",
   editMode: false,
@@ -126,8 +132,45 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         };
       }),
   clearSelectedError: () => set({ selectedForError: [] }),
+  updateColumnOrder: async (columnId: number, newIndex: number) => {
+    const currentColumns = get().columns;
+    const updatedColumns = [...currentColumns];
+    const columnToMove = updatedColumns.find((col) => col.id === columnId);
+    if (!columnToMove) return;
+
+    const oldIndex = updatedColumns.indexOf(columnToMove);
+    updatedColumns.splice(oldIndex, 1);
+    updatedColumns.splice(newIndex, 0, columnToMove);
+
+    const columnsWithOrder = updatedColumns.map((col, idx) => ({
+      ...col,
+      order: idx,
+    }));
+
+    set({ columns: columnsWithOrder });
+
+    try {
+      const updates = await Promise.all(
+        columnsWithOrder.map((col) =>
+          supabase.from("kanban_columns").update({ order: col.order }).eq("id", col.id)
+        )
+      );
+      console.log("Column order updated in Supabase:", updates);
+    } catch (error) {
+      console.error("Failed to update column order in Supabase:", error);
+      // 실패 시 롤백 가능성 고려
+      set({ columns: currentColumns });
+    }
+  },
+  
+  
   setTodoStats: (boardId, stats) =>
     set((state) => ({
       todoStats: { ...state.todoStats, [boardId]: stats },
+    })),
+  setColumns: (update) =>
+    set((state) => ({
+      ...state, // Spread the existing state
+      columns: typeof update === "function" ? update(state.columns) : update,
     })),
 }));
