@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabase";
 import { AnimatePresence } from "framer-motion";
@@ -37,6 +38,7 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
     toggleSelectError,
     clearSelectedDelete,
     clearSelectedError,
+    setColumns,
   } = useKanbanStore();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -49,7 +51,7 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
   ]);
   const [descriptionInput, setDescriptionInput] = useState<string>("");
   const [statusInput, setStatusInput] = useState<string>("todo");
-  const [columns, setColumns] = useState<Column[]>([]);
+  const [columns, setLocalColumns] = useState<Column[]>([]);
   const [showNewColumnModal, setShowNewColumnModal] = useState<boolean>(false);
   const [newColTitle, setNewColTitle] = useState<string>("");
   const [newColColor, setNewColColor] = useState<string>("#FFFFFF");
@@ -105,7 +107,7 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
       .from("kanban_columns")
       .select("*")
       .eq("board_id", boardId)
-      .order("id", { ascending: true });
+      .order("order", { ascending: true });
 
     if (error) {
       console.error("Error fetching columns:", error);
@@ -115,12 +117,12 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
     if (data && data.length === 0) {
       await createDefaultColumns();
     } else if (data) {
+      setLocalColumns(data);
       setColumns(data);
     }
   }
 
   async function createDefaultColumns() {
-    // 이미 "To-do" 컬럼이 있는지 확인
     const { data: existingColumns, error: checkError } = await supabase
       .from("kanban_columns")
       .select("title")
@@ -129,20 +131,18 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
       .single();
 
     if (checkError && checkError.code !== "PGRST116") {
-      // PGRST116은 "결과 없음" 오류 코드
       console.error("Error checking existing columns:", checkError);
       return;
     }
 
     if (existingColumns) {
-      // 이미 기본 컬럼이 존재하면 생성하지 않음
       return;
     }
 
     const defaultColumns = [
-      { title: "To-do", status: "todo", color: "#FFFFFF" },
-      { title: "In-Progress", status: "in-progress", color: "#FFFFFF" },
-      { title: "Done", status: "done", color: "#FFFFFF" },
+      { title: "To-do", status: "todo", color: "#FFFFFF", order: 0 },
+      { title: "In-Progress", status: "in-progress", color: "#FFFFFF", order: 1 },
+      { title: "Done", status: "done", color: "#FFFFFF", order: 2 },
     ];
 
     const { data, error } = await supabase
@@ -153,6 +153,7 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
           title: col.title,
           status: col.status,
           color: col.color,
+          order: col.order,
         }))
       )
       .select();
@@ -163,6 +164,7 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
     }
 
     if (data) {
+      setLocalColumns(data);
       setColumns(data);
     }
   }
@@ -306,6 +308,7 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
             title: newColTitle,
             status,
             color: newColColor,
+            order: columns.length,
           },
         ])
         .select()
@@ -318,6 +321,7 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
       }
 
       if (data) {
+        setLocalColumns((prev) => [...prev, data as Column]);
         setColumns((prev) => [...prev, data as Column]);
       }
 
@@ -339,6 +343,13 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
     if (error) {
       console.error(error);
     } else {
+      setLocalColumns((prev) =>
+        prev.map((col) =>
+          col.id === editCol.id
+            ? { ...col, title: editColTitle, color: editColColor }
+            : col
+        )
+      );
       setColumns((prev) =>
         prev.map((col) =>
           col.id === editCol.id
@@ -361,8 +372,6 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
     const isConfirmed = window.confirm("삭제하시겠습니까?");
     if (!isConfirmed) return;
 
-    console.log("Attempting to delete column with ID:", colId);
-
     const { error } = await supabase
       .from("kanban_columns")
       .delete()
@@ -372,8 +381,8 @@ export default function KanbanPage({ params }: { params: { id: string } }) {
       console.error("Error deleting column:", error.message, error.details);
       alert("컬럼 삭제에 실패했습니다: " + error.message);
     } else {
-      console.log("Column deleted successfully, updating state...");
-      setColumns(columns.filter((col) => col.id !== colId));
+      setLocalColumns((prev) => prev.filter((col) => col.id !== colId));
+      setColumns((prev) => prev.filter((col) => col.id !== colId));
     }
   }
 
