@@ -63,8 +63,9 @@ const DraggableTodo: React.FC<DraggableTodoProps> = ({
         "bg-[#28272B] rounded p-2 text-sm cursor-pointer transition-colors",
         {
           "bg-red-300 text-black": deleteMode && isSelected || errorMode && errorSelected,
+          "hover:bg-red-300": deleteMode && !isSelected || errorMode && !errorSelected,
           "bg-[#4d4a54]": deleteMode && !isSelected || errorMode && !errorSelected || editMode,
-          "hover:bg-gray-600": !deleteMode || !errorMode,
+          "hover:bg-gray-600": !deleteMode && !errorMode, // 원래 색으로 돌아가는 조건 수정
         },
       )}
       style={{ opacity: isDragging ? 0.5 : 1 }}
